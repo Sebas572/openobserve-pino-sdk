@@ -145,6 +145,8 @@ Las opciones pasadas por código tienen prioridad sobre las variables de entorno
 | `authKey` | `OPENOBSERVE_AUTH_KEY` | — | Clave Base64 (`usuario:contraseña`), alternativa a usuario/contraseña. |
 | `batchSize` | `OPENOBSERVE_BATCH_SIZE` | `100` | Número de logs por paquete enviado. |
 | `flushInterval` | `OPENOBSERVE_FLUSH_INTERVAL` | `2000` | Intervalo de envío en ms (`0` o `false` lo desactiva). |
+| `includeLevels` | `OPENOBSERVE_INCLUDE_LEVELS` | — | Lista blanca: solo sube estos niveles (en `.env` separados por coma, ej. `warn,error`). |
+| `excludeLevels` | `OPENOBSERVE_EXCLUDE_LEVELS` | — | Lista negra: sube todos excepto estos niveles (en `.env` separados por coma, ej. `trace,debug`). |
 | `level` | `LOG_LEVEL` | `info` | Nivel mínimo de log. |
 | `maxRetries` | — | `3` | Reintentos ante error de red, `429` o `5xx`. |
 | `retryDelay` | — | `500` | Espera inicial del backoff exponencial, en ms. |

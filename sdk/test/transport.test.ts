@@ -247,4 +247,91 @@ describe("OpenObserveTransport", () => {
       else process.env.OPENOBSERVE_FLUSH_INTERVAL = prevFlush;
     }
   });
+
+  test("includeLevels sube únicamente los niveles indicados", async () => {
+    const { fn, captured } = fakeFetch([{ status: 200 }, { status: 200 }]);
+    const transport = new OpenObserveTransport(
+      resolveConfig({
+        url: "https://example.test/api/default/nodejs/_json",
+        username: "u",
+        password: "p",
+        includeLevels: ["warn", "error"],
+        flushInterval: 60_000,
+        fetch: fn,
+      }),
+    );
+
+    transport.write(`${JSON.stringify({ level: 20, time: Date.now(), msg: "debug-ignorado" })}\n`);
+    transport.write(`${JSON.stringify({ level: 30, time: Date.now(), msg: "info-ignorado" })}\n`);
+    transport.write(`${JSON.stringify({ level: 40, time: Date.now(), msg: "warn-subido" })}\n`);
+    transport.write(`${JSON.stringify({ level: 50, time: Date.now(), msg: "error-subido" })}\n`);
+
+    await transport.flush();
+
+    expect(captured.length).toBe(2);
+    const mainBody = JSON.parse(captured[0]!.body);
+    expect(mainBody.map((item: { message: string }) => item.message)).toEqual([
+      "warn-subido",
+      "error-subido",
+    ]);
+    const errorBody = JSON.parse(captured[1]!.body);
+    expect(errorBody.map((item: { message: string }) => item.message)).toEqual([
+      "error-subido",
+    ]);
+
+    await transport.close();
+  });
+
+  test("excludeLevels sube todos los niveles excepto los excluidos", async () => {
+    const { fn, captured } = fakeFetch([{ status: 200 }]);
+    const transport = new OpenObserveTransport(
+      resolveConfig({
+        url: "https://example.test/api/default/nodejs/_json",
+        username: "u",
+        password: "p",
+        excludeLevels: ["trace", "debug"],
+        flushInterval: 60_000,
+        fetch: fn,
+      }),
+    );
+
+    transport.write(`${JSON.stringify({ level: 10, time: Date.now(), msg: "trace-excluido" })}\n`);
+    transport.write(`${JSON.stringify({ level: 20, time: Date.now(), msg: "debug-excluido" })}\n`);
+    transport.write(`${JSON.stringify({ level: 30, time: Date.now(), msg: "info-subido" })}\n`);
+    transport.write(`${JSON.stringify({ level: 40, time: Date.now(), msg: "warn-subido" })}\n`);
+
+    await transport.flush();
+
+    expect(captured.length).toBe(1);
+    const body = JSON.parse(captured[0]!.body);
+    expect(body.length).toBe(2);
+    expect(body.map((item: { message: string }) => item.message)).toEqual([
+      "info-subido",
+      "warn-subido",
+    ]);
+
+    await transport.close();
+  });
+
+  test("resolveConfig lee OPENOBSERVE_INCLUDE_LEVELS y OPENOBSERVE_EXCLUDE_LEVELS del entorno", () => {
+    const prevInc = process.env.OPENOBSERVE_INCLUDE_LEVELS;
+    const prevExc = process.env.OPENOBSERVE_EXCLUDE_LEVELS;
+    process.env.OPENOBSERVE_INCLUDE_LEVELS = "warn, error";
+    process.env.OPENOBSERVE_EXCLUDE_LEVELS = "debug";
+
+    try {
+      const cfg = resolveConfig({
+        url: "https://example.test/api/default/nodejs/_json",
+        username: "u",
+        password: "p",
+      });
+      expect(Array.from(cfg.includeLevels ?? [])).toEqual(["warn", "error"]);
+      expect(Array.from(cfg.excludeLevels ?? [])).toEqual(["debug"]);
+    } finally {
+      if (prevInc === undefined) delete process.env.OPENOBSERVE_INCLUDE_LEVELS;
+      else process.env.OPENOBSERVE_INCLUDE_LEVELS = prevInc;
+      if (prevExc === undefined) delete process.env.OPENOBSERVE_EXCLUDE_LEVELS;
+      else process.env.OPENOBSERVE_EXCLUDE_LEVELS = prevExc;
+    }
+  });
 });

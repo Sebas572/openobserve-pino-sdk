@@ -1,5 +1,5 @@
-import { DEFAULT_REDACT_KEYS } from "./payload";
-import type { OpenObserveOptions } from "./types";
+import { DEFAULT_REDACT_KEYS, normalizeLevel } from "./payload";
+import type { LogLevel, OpenObserveOptions } from "./types";
 
 /** Endpoint por defecto de la nube pública de OpenObserve. */
 const DEFAULT_URL = "https://api.openobserve.ai/api/default/nodejs/_json";
@@ -24,6 +24,10 @@ export interface ResolvedConfig {
   headers: Record<string, string>;
   /** Nivel mínimo de Pino. */
   level: string;
+  /** Si está definido, solo se suben a OpenObserve los niveles incluidos. */
+  includeLevels?: Set<string>;
+  /** Si está definido, se excluyen estos niveles del envío a OpenObserve. */
+  excludeLevels?: Set<string>;
   /** Nº máximo de entradas por petición. */
   batchSize: number;
   /** Intervalo de vaciado del buffer, en ms. */
@@ -128,6 +132,22 @@ function envInt(name: string): number | undefined {
   return Math.floor(parsed);
 }
 
+/** Normaliza una lista de niveles desde opciones o variable de entorno separada por comas. */
+function resolveLevelSet(
+  explicit: (LogLevel | string)[] | undefined,
+  envName: string,
+): Set<string> | undefined {
+  const list =
+    explicit ??
+    process.env[envName]
+      ?.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  if (list === undefined) return undefined;
+  return new Set(list.map((lvl) => String(normalizeLevel(lvl))));
+}
+
 /**
  * Combina las opciones explícitas con las variables de entorno y aplica los
  * valores por defecto.
@@ -162,6 +182,8 @@ export function resolveConfig(options: OpenObserveOptions = {}): ResolvedConfig 
     authHeader,
     headers: options.headers ?? {},
     level: options.level ?? process.env.LOG_LEVEL ?? "info",
+    includeLevels: resolveLevelSet(options.includeLevels, "OPENOBSERVE_INCLUDE_LEVELS"),
+    excludeLevels: resolveLevelSet(options.excludeLevels, "OPENOBSERVE_EXCLUDE_LEVELS"),
     batchSize,
     flushInterval,
     maxRetries: options.maxRetries ?? 3,

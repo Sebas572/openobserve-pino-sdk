@@ -121,8 +121,22 @@ export class OpenObserveTransport extends Writable {
     }
   }
 
+  /** Indica si el registro pasa los filtros `includeLevels` / `excludeLevels`. */
+  private shouldUpload(level: unknown): boolean {
+    const name = typeof level === "string" ? level : String(level ?? "");
+    if (this.config.includeLevels && !this.config.includeLevels.has(name)) {
+      return false;
+    }
+    if (this.config.excludeLevels && this.config.excludeLevels.has(name)) {
+      return false;
+    }
+    return true;
+  }
+
   /** Añade una entrada al buffer, descartando las más antiguas si está lleno. */
   private enqueue(record: Record<string, unknown>): void {
+    if (!this.shouldUpload(record.level)) return;
+
     if (this.buffer.length >= this.config.maxBufferSize) {
       this.buffer.shift();
       this.droppedCount += 1;

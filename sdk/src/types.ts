@@ -28,6 +28,10 @@ export interface OpenObserveOptions {
   headers?: Record<string, string>;
   /** Nivel mínimo de Pino. Por defecto "info" o el valor de LOG_LEVEL. */
   level?: string;
+  /** Lista blanca: si se define, solo se suben a OpenObserve los logs con alguno de estos niveles. */
+  includeLevels?: (LogLevel | string)[];
+  /** Lista negra: si se define, se suben todos los logs excepto los que tengan alguno de estos niveles. */
+  excludeLevels?: (LogLevel | string)[];
   /** Nº máximo de entradas por petición (tamaño del paquete). Por defecto 100 o `OPENOBSERVE_BATCH_SIZE`. */
   batchSize?: number;
   /** Cada cuánto se vacía el buffer, en ms (`0` o `false` desactiva el temporizador para subir solo por paquete). Por defecto 2000 o `OPENOBSERVE_FLUSH_INTERVAL`. */
