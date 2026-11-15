@@ -1,0 +1,66 @@
+{
+  "name": "openobserve-pino-sdk",
+  "version": "0.1.0",
+  "description": "SDK de logs para OpenObserve basado en Pino: batching, reintentos con backoff, redacción de datos sensibles y levels normalizados.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./transport": {
+      "types": "./dist/pino-transport.d.ts",
+      "bun": "./src/pino-transport.ts",
+      "import": "./dist/pino-transport.js",
+      "require": "./dist/pino-transport.cjs",
+      "default": "./dist/pino-transport.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build:esm": "bun build ./src/index.ts ./src/pino-transport.ts --outdir ./dist --target node --format esm --external pino --external pino-pretty",
+    "build:cjs": "bun build ./src/index.ts --outfile ./dist/index.cjs --target node --format cjs --external pino --external pino-pretty && bun build ./src/pino-transport.ts --outfile ./dist/pino-transport.cjs --target node --format cjs --external pino --external pino-pretty",
+    "build:types": "tsc -p ./tsconfig.build.json",
+    "build": "bun run build:esm && bun run build:cjs && bun run build:types",
+    "prepublishOnly": "bun run build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "pino": ">=9",
+    "pino-pretty": "^13.0.0"
+  },
+  "peerDependenciesMeta": {
+    "pino-pretty": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
+    "typescript": "^7.0.2"
+  },
+  "keywords": [
+    "openobserve",
+    "pino",
+    "logging",
+    "observability",
+    "opentelemetry"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
