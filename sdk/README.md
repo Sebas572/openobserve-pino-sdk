@@ -49,6 +49,8 @@ const logger = openObserveSetup(
     password: "your-password",
     batchSize: 300,       // upload in batches of 300 logs
     flushInterval: false, // disable time-based flushing (batch or exit only)
+    // errorStream: false,     // disable duplicating errors to the "default" stream (or pass a custom stream name)
+    // includeProject: false,  // disable adding `project` from the URL stream
     // includeLevels: ["warn", "error", "fatal"],
     // excludeLevels: ["trace", "debug"],
   },
@@ -79,6 +81,10 @@ OPENOBSERVE_FLUSH_INTERVAL=0
 # Optional: level filtering (comma-separated)
 # OPENOBSERVE_INCLUDE_LEVELS=warn,error,fatal
 # OPENOBSERVE_EXCLUDE_LEVELS=trace,debug
+
+# Optional: disable automatic `default` error stream or `project` field
+# OPENOBSERVE_ERROR_STREAM=false
+# OPENOBSERVE_INCLUDE_PROJECT=false
 ```
 
 With `.env` configured, no credentials are needed in code:
@@ -151,6 +157,8 @@ Options passed in code take precedence over environment variables.
 | `maxBufferSize` | — | `batchSize * 20` | Maximum logs kept in memory. |
 | `redact` | — | `DEFAULT_REDACT_KEYS` | Keys replaced with `"[REDACTED]"`, or `false` to disable. |
 | `base` | — | `{}` | Common fields added to every log. |
+| `errorStream` | `OPENOBSERVE_ERROR_STREAM` | `true` (`"default"`) | Duplicates `error` logs to another stream (`false` disables, or a custom stream name). |
+| `includeProject` | `OPENOBSERVE_INCLUDE_PROJECT` | `true` | Adds `project` field extracted from the URL stream (`false` disables). |
 | `stdout` | — | `true` | Also writes to `stdout`. |
 | `pretty` | — | `false` | Formats `stdout` with `pino-pretty` (if installed). |
 | `autoFlushOnExit` | — | `true` | Automatically flushes buffer on process exit. |
@@ -203,6 +211,8 @@ const logger = openObserveSetup(
     password: "tu-password",
     batchSize: 300,       // sube en paquetes de 300 logs
     flushInterval: false, // desactiva el envío por tiempo (solo al llegar a 300 o al salir)
+    // errorStream: false,     // desactiva la copia de errores al stream "default" (o indica otro stream)
+    // includeProject: false,  // desactiva el campo `project` automático de la URL
     // includeLevels: ["warn", "error", "fatal"],
     // excludeLevels: ["trace", "debug"],
   },
@@ -233,6 +243,10 @@ OPENOBSERVE_FLUSH_INTERVAL=0
 # Opcional: filtrar qué niveles se suben (separados por coma)
 # OPENOBSERVE_INCLUDE_LEVELS=warn,error,fatal
 # OPENOBSERVE_EXCLUDE_LEVELS=trace,debug
+
+# Opcional: desactivar la copia de errores a `default` o el campo `project` automático
+# OPENOBSERVE_ERROR_STREAM=false
+# OPENOBSERVE_INCLUDE_PROJECT=false
 ```
 
 Con el `.env` configurado, no necesitas pasar credenciales por código:
@@ -305,6 +319,8 @@ Las opciones pasadas por código tienen prioridad sobre las variables de entorno
 | `maxBufferSize` | — | `batchSize * 20` | Límite máximo de logs en memoria. |
 | `redact` | — | `DEFAULT_REDACT_KEYS` | Claves a sustituir por `"[REDACTED]"`, o `false` para desactivar. |
 | `base` | — | `{}` | Campos adicionales comunes a todos los logs. |
+| `errorStream` | `OPENOBSERVE_ERROR_STREAM` | `true` (`"default"`) | Duplica los `error` a otro stream (`false` lo desactiva, o indica un nombre personalizado). |
+| `includeProject` | `OPENOBSERVE_INCLUDE_PROJECT` | `true` | Añade el campo `project` extraído del stream de la URL (`false` lo desactiva). |
 | `stdout` | — | `true` | Escribe también en `stdout`. |
 | `pretty` | — | `false` | Formatea `stdout` con `pino-pretty` (si está instalado). |
 | `autoFlushOnExit` | — | `true` | Vacía el buffer automáticamente al terminar el proceso. |

@@ -1,6 +1,6 @@
 {
   "name": "openobserve-pino-sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "SDK de logs para OpenObserve basado en Pino: batching, reintentos con backoff, redacción de datos sensibles y levels normalizados.",
   "repository": {
     "type": "git",

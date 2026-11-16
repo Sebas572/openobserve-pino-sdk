@@ -97,26 +97,59 @@ function streamFromUrl(url: string): string | undefined {
 
 /**
  * Devuelve la URL del stream de errores: el mismo host y organización que la
- * URL principal, pero con el stream `default`.
+ * URL principal, usando `errorStream` (por defecto `default`).
  *
  * `https://host/api/default/ssc/_json` → `https://host/api/default/default/_json`
  */
-function resolveErrorUrl(mainUrl: string): string | undefined {
+function resolveErrorUrl(mainUrl: string, errorStream: string | false): string | undefined {
+  if (errorStream === false) return undefined;
   const match = mainUrl.match(/^(.*\/api\/[^/]+\/)([^/]+)(\/_json.*)$/);
   if (!match) return undefined;
-  return `${match[1]}${ERROR_STREAM}${match[3]}`;
+  if (match[2] === errorStream) return undefined;
+  return `${match[1]}${errorStream}${match[3]}`;
+}
+
+/** Resuelve cómo debe comportarse el stream secundario de errores. */
+function resolveErrorStreamOption(explicit: string | boolean | undefined): string | false {
+  if (explicit === false) return false;
+  if (explicit === true) return ERROR_STREAM;
+  if (typeof explicit === "string") {
+    const trimmed = explicit.trim();
+    return trimmed === "" ? false : trimmed;
+  }
+
+  const envValue = process.env.OPENOBSERVE_ERROR_STREAM?.trim();
+  if (!envValue) return ERROR_STREAM;
+  const lower = envValue.toLowerCase();
+  if (lower === "false" || lower === "0" || lower === "no") return false;
+  if (lower === "true" || lower === "1" || lower === "yes") return ERROR_STREAM;
+  return envValue;
+}
+
+/** Resuelve si se añade automáticamente el campo `project` a los registros. */
+function resolveIncludeProject(explicit: boolean | undefined): boolean {
+  if (explicit !== undefined) return explicit;
+  const envValue = process.env.OPENOBSERVE_INCLUDE_PROJECT?.trim().toLowerCase();
+  if (envValue === "false" || envValue === "0" || envValue === "no") return false;
+  return true;
 }
 
 /** Reúne los campos comunes a todos los registros. */
-function resolveBase(options: OpenObserveOptions, url: string): Record<string, unknown> {
+function resolveBase(
+  options: OpenObserveOptions,
+  url: string,
+  includeProject: boolean,
+): Record<string, unknown> {
   const base: Record<string, unknown> = {};
 
   if (process.env.NODE_ENV) base.env = process.env.NODE_ENV;
 
-  // El campo `project` dice de qué proyecto salió el log: es el stream de la
-  // URL, así que no hay que declararlo.
-  const project = streamFromUrl(url);
-  if (project) base.project = project;
+  if (includeProject) {
+    // El campo `project` dice de qué proyecto salió el log: es el stream de la
+    // URL, así que no hay que declararlo.
+    const project = streamFromUrl(url);
+    if (project) base.project = project;
+  }
 
   Object.assign(base, options.base ?? {});
 
@@ -174,11 +207,13 @@ export function resolveConfig(options: OpenObserveOptions = {}): ResolvedConfig 
       : (options.flushInterval ?? envInt("OPENOBSERVE_FLUSH_INTERVAL") ?? 2000);
   const flushInterval = Math.max(0, Math.floor(rawFlushInterval));
   const url = resolveUrl(options);
+  const errorStream = resolveErrorStreamOption(options.errorStream);
+  const includeProject = resolveIncludeProject(options.includeProject);
 
   return {
     url,
-    errorUrl: resolveErrorUrl(url),
-    project: streamFromUrl(url),
+    errorUrl: resolveErrorUrl(url, errorStream),
+    project: includeProject ? streamFromUrl(url) : undefined,
     authHeader,
     headers: options.headers ?? {},
     level: options.level ?? process.env.LOG_LEVEL ?? "info",
@@ -191,7 +226,7 @@ export function resolveConfig(options: OpenObserveOptions = {}): ResolvedConfig 
     timeout: options.timeout ?? 10_000,
     maxBufferSize: options.maxBufferSize ?? batchSize * 20,
     redact: options.redact === false ? false : (options.redact ?? DEFAULT_REDACT_KEYS),
-    base: resolveBase(options, url),
+    base: resolveBase(options, url, includeProject),
     stdout: options.stdout ?? true,
     pretty: options.pretty ?? false,
     debug: options.debug ?? false,

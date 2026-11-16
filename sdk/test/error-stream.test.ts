@@ -12,6 +12,8 @@ const ENV_KEYS = [
   "OPENOBSERVE_BASE_URL",
   "OPENOBSERVE_ORG",
   "OPENOBSERVE_STREAM",
+  "OPENOBSERVE_ERROR_STREAM",
+  "OPENOBSERVE_INCLUDE_PROJECT",
 ];
 
 const saved = new Map<string, string | undefined>();
@@ -196,5 +198,81 @@ describe("campo project", () => {
 
     expect(config.project).toBeUndefined();
     expect(config.base.project).toBeUndefined();
+  });
+
+  test("includeProject: false omite el campo project", () => {
+    const config = resolveConfig({
+      url: MAIN,
+      username: "u",
+      password: "p",
+      includeProject: false,
+    });
+
+    expect(config.project).toBeUndefined();
+    expect(config.base.project).toBeUndefined();
+  });
+
+  test("OPENOBSERVE_INCLUDE_PROJECT=false desactiva project desde el entorno", () => {
+    process.env.OPENOBSERVE_INCLUDE_PROJECT = "false";
+    const config = resolveConfig({ url: MAIN, username: "u", password: "p" });
+
+    expect(config.project).toBeUndefined();
+    expect(config.base.project).toBeUndefined();
+  });
+});
+
+describe("opciones de errorStream", () => {
+  test("errorStream: false desactiva el envío al stream default", async () => {
+    const { fn, captured } = fakeFetch();
+    const config = resolveConfig({
+      url: MAIN,
+      username: "u",
+      password: "p",
+      errorStream: false,
+      fetch: fn,
+      flushInterval: 60_000,
+    });
+
+    expect(config.errorUrl).toBeUndefined();
+
+    const transport = new OpenObserveTransport(config);
+    transport.write(`${JSON.stringify({ level: 50, time: Date.now(), msg: "solo-principal" })}\n`);
+    await transport.flush();
+
+    expect(captured.length).toBe(1);
+    expect(captured[0]!.url).toBe(MAIN);
+
+    await transport.close();
+  });
+
+  test("errorStream personalizado usa ese stream para los errores", () => {
+    const config = resolveConfig({
+      url: MAIN,
+      username: "u",
+      password: "p",
+      errorStream: "errors",
+    });
+
+    expect(config.errorUrl).toBe("https://observe.altasg2.org/api/default/errors/_json");
+  });
+
+  test("si el stream principal ya es default, no duplica al mismo endpoint", () => {
+    const config = resolveConfig({
+      url: ERRORS,
+      username: "u",
+      password: "p",
+    });
+
+    expect(config.errorUrl).toBeUndefined();
+  });
+
+  test("OPENOBSERVE_ERROR_STREAM controla errorUrl desde el entorno", () => {
+    process.env.OPENOBSERVE_ERROR_STREAM = "false";
+    expect(resolveConfig({ url: MAIN, username: "u", password: "p" }).errorUrl).toBeUndefined();
+
+    process.env.OPENOBSERVE_ERROR_STREAM = "critical";
+    expect(resolveConfig({ url: MAIN, username: "u", password: "p" }).errorUrl).toBe(
+      "https://observe.altasg2.org/api/default/critical/_json",
+    );
   });
 });

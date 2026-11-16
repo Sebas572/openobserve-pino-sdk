@@ -48,6 +48,17 @@ export interface OpenObserveOptions {
   redact?: string[] | false;
   /** Campos comunes a todos los logs. */
   base?: Record<string, unknown>;
+  /**
+   * Duplica los logs de nivel `error` en otro stream de la misma organización.
+   * Por defecto `true` (usa el stream `"default"`). Pasa `false` para desactivarlo
+   * o un nombre de stream personalizado (p. ej. `"errors"`).
+   */
+  errorStream?: string | boolean;
+  /**
+   * Añade automáticamente el campo `project` con el nombre del stream de la URL.
+   * Por defecto `true`. Pasa `false` para desactivarlo.
+   */
+  includeProject?: boolean;
   /** Escribe también en stdout. Por defecto true. */
   stdout?: boolean;
   /** Formatea stdout con pino-pretty (debe estar instalado). Por defecto false. */
